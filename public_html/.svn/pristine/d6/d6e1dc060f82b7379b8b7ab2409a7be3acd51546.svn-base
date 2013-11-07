@@ -1,0 +1,815 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<!--
+# Copyright (c) 2010, Kiran Pashikanti 
+# 
+# Permission to use, copy, modify, and/or distribute this software for any 
+# purpose with or without fee is hereby granted, provided that the above 
+# copyright notice and this permission notice appear in all copies. 
+# 
+# THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES 
+# WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF 
+# MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY 
+# SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES 
+# WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN 
+# ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF OR 
+# IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE. 
+# 
+-->
+<html>
+<head>
+	<title>General properties of ordinary water and steam</title>
+	<script type="text/javascript" src="http://ajax.googleapis.com/ajax/libs/jquery/1.4.2/jquery.min.js"></script>
+	<script type="text/javascript">
+		
+		//Map is simple
+		//{to_unit:[scale, offset],... }
+		//the scale and offset converts the base_unit to the to_unit
+		//to_unit_value = base_unit_value*scale + offset
+		//Reverse
+		//base_unit_value = (to_unit_value - offset)/scale
+		
+		var unit_default = {"Quality": "Unitless",
+							"Temperature": "K",
+							"Pressure": "kPa",								
+							"Density": "kg/m3",
+							"Internal_Energy": "kJ/kg",
+							"Entropy" : "kJ/kg-K",
+							"Enthalpy": "kJ/kg",
+							"Isochoric_heat_capacity": "kJ/kg-K",
+							"Isobaric_heat_capacity": "kJ/kg-K",
+							"Speed_of_sound": "m/s",				
+							"Joule_Thomson_coefficient": "K/KPa",
+							"Isothermal_throttling_coefficient": "m3/kg",
+							"Isentropic_temperature_pressure_coefficient": "K-m3/kJ",
+							"Second_virial_coefficient": "m3/kg" ,
+							"Third_virial_coefficient": "(m3/kg)^2"
+							};
+		var unit_convert = {"Quality":{"Unitless":[1.0, 0.0]},
+					"Temperature":{"K":[1.0, 0.0],
+								   "C":[1.0, -273.15],
+								   "R":[1.8, 0.0],
+								   "F":[1.8, (9.0/5.0)*(-273.15) + 32.0]},
+					
+					"Pressure":{"Pa":   [1.0, 0.0],
+								"kPa":  [1.0e-3, 0.0],
+								"MPa":  [1.0e-6, 0.0],
+								"GPa":  [1.0e-9, 0.0],
+					            "bar":  [1.0e-5, 0.0],
+								"mbar": [0.01, 0.0],
+								"at":   [1.0197e-5, 0.0],
+								"atm":  [9.8692e-6, 0.0],
+								"torr": [7.5006e-3, 0.0],
+								"psi":  [145.04e-6, 0.0]},
+								
+					"Density":{"kg/m3" : [1.0, 0.0],
+					           "g/L"   : [1.0, 0.0],
+							   "g/cm3" : [1000.0, 0.0],
+							   "g/mL"  : [1000.0, 0.0],
+							   "lb/in3": [2.76799e4, 0.0],
+							   "lb/ft3": [16.01846, 0.0]},
+					
+					"Internal_Energy":{"kJ/kg":   [1.0, 0.0],
+					                   "kJ/g" :   [1.0e-3, 0.0],
+									   "J/g"  :   [1.0, 0.0],
+									   "J/kg" :   [1.0e-3, 0.0],
+									   "kcal/g":  [1000.0/0.23900573, 0.0],
+									   "kcal/kg": [1.0/0.23900573, 0.0],
+									   "cal/g":   [1.0/0.23900573, 0.0],
+									   "cal/kg":  [1.0/(0.23900573*1000.0), 0.0],
+									   "Btu/lb":  [0.429922614, 0.0]},
+									   
+					"Entropy" :{"kJ/kg-C":[1.0, 0.0],
+								"kJ/kg-K":[1.0, 0.0],
+								"kJ/g-C": [1000.0, 0.0],
+								"kJ/g-K": [1000.0, 0.0],
+								"J/g-C":[1.0, 0.0],
+								"J/g-K":[1.0, 0.0],
+								"J/kg-C":[1.0e-3, 0.0],
+								"J/kg-K":[1.0e-3, 0.0],
+								"kcal/g-C":[1000.0/0.23900573, 0.0],
+								"kcal/g-K":[1000.0/0.23900573, 0.0],
+								"kcal/kg-C":[1.0/0.23900573, 0.0],
+								"kcal/kg-K":[1.0/0.23900573, 0.0],
+								"cal/g-C":[1.0/0.23900573, 0.0],
+								"cal/g-K":[1.0/0.23900573, 0.0],
+								"cal/kg-C":[1.0/(1000.0*0.23900573), 0.0],
+								"cal/kg-K":[1.0/(1000.0*0.23900573), 0.0],
+								"Btu/lb-F":[4.1868, 0.0],
+								"Btu/lb-R":[4.1868, 0.0]},
+								
+					"Enthalpy":{"kJ/kg":   [1.0, 0.0],
+					                   "kJ/g" :   [1.0e-3, 0.0],
+									   "J/g"  :   [1.0, 0.0],
+									   "J/kg" :   [1.0e-3, 0.0],
+									   "kcal/g":  [1000.0/0.23900573, 0.0],
+									   "kcal/kg": [1.0/0.23900573, 0.0],
+									   "cal/g":   [1.0/0.23900573, 0.0],
+									   "cal/kg":  [1.0/(0.23900573*1000.0), 0.0],
+									   "Btu/lb":  [0.429922614, 0.0]},
+					
+					"Isochoric_heat_capacity":{"kJ/kg-C":[1.0, 0.0],
+								"kJ/kg-K":[1.0, 0.0],
+								"kJ/g-C": [1000.0, 0.0],
+								"kJ/g-K": [1000.0, 0.0],
+								"J/g-C":[1.0, 0.0],
+								"J/g-K":[1.0, 0.0],
+								"J/kg-C":[1.0e-3, 0.0],
+								"J/kg-K":[1.0e-3, 0.0],
+								"kcal/g-C":[1000.0/0.23900573, 0.0],
+								"kcal/g-K":[1000.0/0.23900573, 0.0],
+								"kcal/kg-C":[1.0/0.23900573, 0.0],
+								"kcal/kg-K":[1.0/0.23900573, 0.0],
+								"cal/g-C":[1.0/0.23900573, 0.0],
+								"cal/g-K":[1.0/0.23900573, 0.0],
+								"cal/kg-C":[1.0/(1000.0*0.23900573), 0.0],
+								"cal/kg-K":[1.0/(1000.0*0.23900573), 0.0],
+								"Btu/lb-F":[4.1868, 0.0],
+								"Btu/lb-R":[4.1868, 0.0]},
+					
+					"Isobaric_heat_capacity":{"kJ/kg-C":[1.0, 0.0],
+								"kJ/kg-K":[1.0, 0.0],
+								"kJ/g-C": [1000.0, 0.0],
+								"kJ/g-K": [1000.0, 0.0],
+								"J/g-C":[1.0, 0.0],
+								"J/g-K":[1.0, 0.0],
+								"J/kg-C":[1.0e-3, 0.0],
+								"J/kg-K":[1.0e-3, 0.0],
+								"kcal/g-C":[1000.0/0.23900573, 0.0],
+								"kcal/g-K":[1000.0/0.23900573, 0.0],
+								"kcal/kg-C":[1.0/0.23900573, 0.0],
+								"kcal/kg-K":[1.0/0.23900573, 0.0],
+								"cal/g-C":[1.0/0.23900573, 0.0],
+								"cal/g-K":[1.0/0.23900573, 0.0],
+								"cal/kg-C":[1.0/(1000.0*0.23900573), 0.0],
+								"cal/kg-K":[1.0/(1000.0*0.23900573), 0.0],
+								"Btu/lb-F":[4.1868, 0.0],
+								"Btu/lb-R":[4.1868, 0.0]},
+					
+					"Speed_of_sound":{"m/s":   [1.0, 0.0],
+					                  "m/min": [1.0*60.0, 0.0],
+									  "m/h":   [1.0*60.0*60.0, 0.0],
+									  "km/h":  [3.6, 0.0],
+									  "cm/s":  [0.01, 0.0],
+									  "ft/s":  [3.280840, 0.0],
+									  "MPH" :  [2.236936, 0.0],
+									  "ft/min":[3.280840*60.0, 0.0],
+									  "ft/hr": [3.280840*60.0*60.0, 0.0]},
+					
+					"Joule_Thomson_coefficient":{"K/KPa": [1.0, 0.0]},
+					"Isothermal_throttling_coefficient":{"m3/kg": [1.0, 0.0]},
+					"Isentropic_temperature_pressure_coefficient":{"K-m3/kJ": [1.0, 0.0]},
+					"Second_virial_coefficient":{"m3/kg": [1.0, 0.0]},
+					"Third_virial_coefficient":{"(m3/kg)^2": [1.0, 0.0]}
+					};
+	
+		function addItemsToSelect(s, items_value, items_text, default_value, do_append)
+		{
+			var previous = ""
+			if (do_append == true)
+			{
+				previous = s.html()
+			}
+			var output_string = previous;
+			var N = items_value.length;
+			for (var i=0; i < N; i++)
+			{
+				v = items_value[i]
+				t = items_text[i]
+				output_string = output_string + "<option value=\"" + v +"\">" + t +"</option>"
+			}
+			s.html(output_string);
+			s.val(default_value);
+		}
+		
+		function setUnitsToSelect(s, unit_type)
+		{
+			var unit_list = [];
+			var unit_ids = unit_convert[unit_type];
+			var d = unit_default[unit_type];
+			for (var key in unit_ids)
+			{
+				unit_list.push(key);
+			}
+			addItemsToSelect(s, unit_list, unit_list, d, false);
+			return d;
+		}
+		
+		
+		function convert_value(name, from_value, from_unit, to_unit)
+		{
+			//MAP converts the base_value to the to_value
+			//Returns undefined if value cannot be converted for whatever reason
+			var uc = unit_convert[name];
+			if (uc == undefined){
+				return undefined;
+			}
+			
+			map_from_unit = uc[from_unit];
+			if (map_from_unit == undefined){
+				return undefined;
+			}
+			scale = map_from_unit[0];
+			offset = map_from_unit[1];
+			
+			//First convert from the from_unit to the base_unit
+			base_value = (from_value - offset)/scale;
+			
+			//Now convert the base_value to the value in to_unit
+			map_to_unit = uc[to_unit];
+			if (map_to_unit == undefined){
+				return undefined;
+			}
+			scale = map_to_unit[0];
+			offset = map_to_unit[1];
+			to_value = base_value*scale + offset;
+			
+			return to_value;
+		}
+
+		function getCalculatedValues(id)
+		{
+			v = [];
+			v.push($("#" + id + "_value_OVERALL").html());
+			v.push($("#" + id + "_value_VAPOR").html());
+			v.push($("#" + id + "_value_LIQUID").html());		
+			return v;
+		}
+		
+		function setCalculatedValues(id, values)
+		{
+			$("#" + id + "_value_OVERALL").html(values[0]);
+			$("#" + id + "_value_VAPOR").html(values[1]);
+			$("#" + id + "_value_LIQUID").html(values[2]);		
+		}
+		
+		function getCalculatedUnit(id)
+		{
+			return $("#" + id + "_unit").val()
+		}
+
+		function updateCalculatedValues(id, from_unit, to_unit)
+		{
+			v = getCalculatedValues(id);
+			new_v = []
+			for(var i=0; i < v.length; i++)
+			{
+				v[i] = Number(v[i]);
+				if (isNaN(v[i]))
+				{
+					new_v.push('---');
+				}
+				else
+				{
+					//Add hook to automatically convert values based on defaults						
+					var num = convert_value(id, v[i], from_unit, to_unit);
+					new_v.push(num.toPrecision(8));
+				}
+				//alert(v[i]);
+			}
+			setCalculatedValues(id, new_v);
+		}
+		
+		function setCalculatedValuesFromDefault(id, from_values)
+		{
+			v = from_values;
+			new_v = []
+			for(var i=0; i < v.length; i++)
+			{
+				v[i] = Number(v[i]);
+				if (isNaN(v[i]))
+				{
+					new_v.push('---');
+				}
+				else
+				{
+					//Add hook to automatically convert values based on defaults
+					from_unit = unit_default[id];
+					to_unit = $("#" + id + "_unit").val();
+					var num = convert_value(id, v[i], from_unit, to_unit);
+					new_v.push(num.toPrecision(8));
+				}
+				//alert(v[i]);
+			}
+			setCalculatedValues(id, new_v);
+		}
+		
+		
+		function sendToServer()
+		{
+			var s1_name  = $("#specification1_name").val();
+			var s1_value = $("#specification1_value").val();
+			var s1_unit  = $("#specification1_unit").val(); 
+			s1_value = convert_value(s1_name, s1_value, s1_unit, unit_default[s1_name]);
+			s1_unit = unit_default[s1_name];
+
+			var s2_name  = $("#specification2_name").val();
+			var s2_value = $("#specification2_value").val();
+			var s2_unit  = $("#specification2_unit").val(); 
+			s2_value = convert_value(s2_name, s2_value, s2_unit, unit_default[s2_name]);
+			s2_unit = unit_default[s2_name];
+			
+			var req = {"specification1_name" : s1_name,
+					   "specification1_value": s1_value,
+					   "specification1_unit" : s1_unit,
+					   "specification2_name" : s2_name,
+					   "specification2_value": s2_value,
+					   "specification2_unit" : s2_unit,
+					   };
+
+			$.post("calc", 
+					req,  // create an object will all values
+					recvFromServer,	   // Function to call when info returns from the server 
+					"json");
+		}
+	
+		function recvFromServer(data)
+		{
+			$("#status").html(data['status']);
+			for (var key in data)
+			{
+				if (key != "status")
+				{
+					//$("#status").html($("#status").html() + '<BR>' + key + " " + data[key]);
+					setCalculatedValuesFromDefault(key, data[key]);
+				}
+			}
+		}
+		
+		$(document).ready(function() {
+			
+			//initial specs are temperature and density
+			$("#specification1_name").val("Temperature");
+			$("#specification2_name").val("Density");			
+			var last_specification1_name_val = "Temperature";
+			var last_specification2_name_val = "Density";
+			
+			//Setup the initial options for the specifications
+			setUnitsToSelect($("#specification1_unit"), last_specification1_name_val);			
+			setUnitsToSelect($("#specification2_unit"), last_specification2_name_val);			
+			
+			//Setup all the options for calculated values
+			var last_Quality_unit = setUnitsToSelect($("#Quality_unit"), "Quality");			
+			var last_Temperature_unit = setUnitsToSelect($("#Temperature_unit"), "Temperature");			
+			var last_Pressure_unit = setUnitsToSelect($("#Pressure_unit"), "Pressure");								
+			var last_Density_unit = setUnitsToSelect($("#Density_unit"), "Density");
+			var last_Internal_Energy_unit = setUnitsToSelect($("#Internal_Energy_unit"), "Internal_Energy");
+			var last_Entropy_unit = setUnitsToSelect($("#Entropy_unit"), "Entropy");
+			var last_Enthalpy_unit = setUnitsToSelect($("#Enthalpy_unit"), "Enthalpy");
+			var last_Isochoric_heat_capacity_unit = setUnitsToSelect($("#Isochoric_heat_capacity_unit"), "Isochoric_heat_capacity");
+			var last_Isobaric_heat_capacity_unit = setUnitsToSelect($("#Isobaric_heat_capacity_unit"), "Isobaric_heat_capacity");
+			var last_Speed_of_sound_unit = setUnitsToSelect($("#Speed_of_sound_unit"), "Speed_of_sound");				
+			var last_Joule_Thomson_coefficient_unit = setUnitsToSelect($("#Joule_Thomson_coefficient_unit"), "Joule_Thomson_coefficient");
+			var last_Isothermal_throttling_coefficient_unit = setUnitsToSelect($("#Isothermal_throttling_coefficient_unit"), "Isothermal_throttling_coefficient");
+			var last_Isentropic_temperature_pressure_coefficient_unit = setUnitsToSelect($("#Isentropic_temperature_pressure_coefficient_unit"), "Isentropic_temperature_pressure_coefficient");
+			var last_Second_virial_coefficient_unit = setUnitsToSelect($("#Second_virial_coefficient_unit"), "Second_virial_coefficient");
+			var last_Third_virial_coefficient_unit = setUnitsToSelect($("#Third_virial_coefficient_unit"), "Third_virial_coefficient");
+		
+			//alert("call done");
+			//Event handler for when change specification1
+			$("#specification1_name").change(function() {
+				var s1_name = $("#specification1_name");
+				var s2_name = $("#specification2_name");
+				if (s1_name.val() == s2_name.val())
+				{
+					alert("Specifications must be different");
+					s1_name.val(last_specification1_name_val);
+				}
+				else
+				{
+					last_specification1_name_val = s1_name.val()
+				}
+				var s1_unit = $("#specification1_unit");
+				setUnitsToSelect(s1_unit, last_specification1_name_val);			
+			});
+
+			//Event handler for when we change specification2
+			$("#specification2_name").change(function() {
+				var s1_name = $("#specification1_name");
+				var s2_name = $("#specification2_name");
+				if (s1_name.val() == s2_name.val())
+				{
+					alert("Specifications must be different");
+					s2_name.val(last_specification2_name_val);
+				}
+				else
+				{
+					last_specification2_name_val = s2_name.val()
+				}
+				var s2_unit = $("#specification2_unit");
+				setUnitsToSelect(s2_unit, last_specification2_name_val);			
+			});
+			
+			
+			//Event handler for when we click calculate
+			$("#calculate_proph2o").click(function(){
+				/*
+				setCalculatedValues("Temperature", [32.0, "---", 32.0]);
+				setCalculatedValues("Pressure", [1.0, 1.0, 1.0]);
+				setCalculatedValues("Density", [1.0, 1.0, 1.0]);
+				setCalculatedValues("Internal_Energy", [1.0, 1.0, 1.0]);
+				setCalculatedValues("Entropy", [1.0, 1.0, 1.0]);
+				setCalculatedValues("Enthalpy", [1.0, 1.0, 1.0]);
+				setCalculatedValues("Isochoric_heat_capacity", [1.0,"---", 1.0]);
+				setCalculatedValues("Isobaric_heat_capacity", [1.0, 1.0, 1.0]);
+				setCalculatedValues("Speed_of_sound", [1.0, 1.0, 1.0]);				
+				setCalculatedValues("Joule_Thomson_coefficient", [1.0, 1.0, 1.0]);
+				setCalculatedValues("Isothermal_throttling_coefficient", [1.0, 1.0, 1.0]);
+				setCalculatedValues("Isentropic_temperature_pressure_coefficient", [1.0, 1.0, 1.0]);
+				setCalculatedValues("Second_virial_coefficient", [1.0, 1.0, 1.0]);
+				setCalculatedValues("Third_virial_coefficient", [1.0, 1.0, 1.0]);
+				*/
+				
+				/* Let's validate the input */
+				s1_value = $("#specification1_value").val();
+				s2_value = $("#specification2_value").val();
+				if (s1_value.length == 0 || s2_value.length == 0)
+				{
+					alert("Please enter values for both specifications");
+				}
+				else if (isNaN(Number(s1_value)) || isNaN(Number(s2_value)))
+				{
+					alert("All specifications must be numeric");
+				}
+				else
+				{
+					$("#status").html("Sending request ...");
+					sendToServer();
+				}
+			});
+						
+			$("#Temperature_unit").change(function() {
+				from_unit = last_Temperature_unit;
+				to_unit = $("#Temperature_unit").val();
+				last_Temperature_unit = to_unit;
+				updateCalculatedValues("Temperature", from_unit, to_unit);
+			});
+			
+			$("#Pressure_unit").change(function() {
+				from_unit = last_Pressure_unit;
+				to_unit = $("#Pressure_unit").val();
+				last_Pressure_unit = to_unit;
+				updateCalculatedValues("Pressure", from_unit, to_unit);
+			});								
+			
+			$("#Density_unit").change(function() {
+				from_unit = last_Density_unit;
+				to_unit = $("#Density_unit").val();
+				last_Density_unit = to_unit;
+				updateCalculatedValues("Density", from_unit, to_unit);
+			});
+			
+			$("#Internal_Energy_unit").change(function() {
+				from_unit = last_Internal_Energy_unit;
+				to_unit = $("#Internal_Energy_unit").val();
+				last_Internal_Energy_unit = to_unit;
+				updateCalculatedValues("Internal_Energy", from_unit, to_unit);
+			});
+			
+			$("#Entropy_unit").change(function() {
+				from_unit = last_Entropy_unit;
+				to_unit = $("#Entropy_unit").val();
+				last_Entropy_unit = to_unit;
+				updateCalculatedValues("Entropy", from_unit, to_unit);
+			});
+			
+			$("#Enthalpy_unit").change(function() {
+				from_unit = last_Enthalpy_unit;
+				to_unit = $("#Enthalpy_unit").val();
+				last_Enthalpy_unit = to_unit;
+				updateCalculatedValues("Enthalpy", from_unit, to_unit);
+			});
+			
+			$("#Isochoric_heat_capacity_unit").change(function() {
+				from_unit = last_Isochoric_heat_capacity_unit;
+				to_unit = $("#Isochoric_heat_capacity_unit").val();
+				last_Isochoric_heat_capacity_unit = to_unit;
+				updateCalculatedValues("Isochoric_heat_capacity", from_unit, to_unit);
+			});
+			
+			$("#Isobaric_heat_capacity_unit").change(function() {
+				from_unit = last_Isobaric_heat_capacity_unit;
+				to_unit = $("#Isobaric_heat_capacity_unit").val();
+				last_Isobaric_heat_capacity_unit = to_unit;
+				updateCalculatedValues("Isobaric_heat_capacity", from_unit, to_unit);				
+			});
+			
+			$("#Speed_of_sound_unit").change(function() {
+				from_unit = last_Speed_of_sound_unit;
+				to_unit = $("#Speed_of_sound_unit").val();
+				last_Speed_of_sound_unit = to_unit;
+				updateCalculatedValues("Speed_of_sound", from_unit, to_unit);								
+			});				
+			
+			$("#Joule_Thomson_coefficient_unit").change(function() {
+				from_unit = last_Joule_Thomson_coefficient_unit;
+				to_unit = $("#Joule_Thomson_coefficient_unit").val();
+				last_Joule_Thomson_coefficient_unit = to_unit;
+				updateCalculatedValues("Joule_Thomson_coefficient", from_unit, to_unit);												
+			});
+			
+			$("#Isothermal_throttling_coefficient_unit").change(function() {
+				from_unit = last_Isothermal_throttling_coefficient_unit;
+				to_unit = $("#Isothermal_throttling_coefficient_unit").val();
+				last_Isothermal_throttling_coefficient_unit = to_unit;
+				updateCalculatedValues("Isothermal_throttling_coefficient", from_unit, to_unit);																
+			});
+			
+			$("#Isentropic_temperature_pressure_coefficient_unit").change(function() {
+				from_unit = last_Isentropic_temperature_pressure_coefficient_unit;
+				to_unit = $("#Isentropic_temperature_pressure_coefficient").val();
+				last_Isentropic_temperature_pressure_coefficient_unit = to_unit;
+				updateCalculatedValues("Isentropic_temperature_pressure_coefficient", from_unit, to_unit);																
+			});
+			
+			$("#Second_virial_coefficient_unit").change(function() {
+				from_unit = last_Second_virial_coefficient_unit;
+				to_unit = $("#Second_virial_coefficient_unit").val();
+				last_Second_virial_coefficient_unit = to_unit;
+				updateCalculatedValues("Second_virial_coefficient", from_unit, to_unit);																
+			});
+			
+			$("#Third_virial_coefficient_unit").change(function() {
+				from_unit = last_Third_virial_coefficient_unit;
+				to_unit = $("#Third_virial_coefficient_unit").val();
+				last_Third_virial_coefficient_unit = to_unit;
+				updateCalculatedValues("Third_virial_coefficient", from_unit, to_unit);																				
+			});
+		});
+		
+	</script>
+</head>
+
+<body>
+
+<form method="post" id="proph2o" action="">
+<table cellpadding="2">
+	<tr>
+	<td colspan=5><strong>General properties of ordinary water and steam (IAPWS-95)</strong></td>
+	</tr>
+	<tr>
+	<td colspan=5>Copyright (C) 2010, <a href="mailto:kpatvt@gmail.com">Kiran Pashikanti</a></td>
+	</tr>
+	<tr>
+	<td colspan=5>
+	Latest <a href="http://code.google.com/p/proph2o/" target="_blank">status</a> about this project
+	<br>
+	Source code for is available for all uses (including commercial uses) for free <a href="http://code.google.com/p/proph2o/" target="_blank">here</a>
+	</td>
+	</tr>
+	
+	<tr>
+	<td colspan=5><hr></td>
+	</tr>
+
+	<tr>
+	<td colspan=5><div id="status" style="color:#0000FF">Enter specifications, choose a model and click Calculate</div></td>
+	</tr>
+
+	<tr>
+		<td colspan=5>
+			<select id="specification1_name">
+				<!-- TODO: Write code to support more properties as specifications -->
+				<option value="Quality">Quality</option>
+				<option value="Temperature">Temperature</option>
+				<option value="Pressure">Pressure</option>
+				<option value="Density">Density</option>
+				<!--<option value="Internal_Energy">Internal Energy</option>-->
+				<option value="Entropy">Entropy</option>
+				<option value="Enthalpy">Enthalpy</option>
+				<!--<option value="Isochoric_heat_capacity">Isochoric heat capacity</option>-->
+				<!--<option value="Isobaric_heat_capacity">Isobaric heat capacity</option>-->
+				<!--<option value="Speed_of_sound">Speed of sound</option>-->
+				<!--<option value="Joule_Thomson_coefficient">Joule-Thomson coefficient</option>-->
+				<!--<option value="Isothermal_throttling_coefficient">Isothermal throttling coefficient</option>-->
+				<!--<option value="Isentropic_temperature_pressure_coefficient">Isentropic temperature-pressure coefficient</option>-->
+				<!--<option value="Second_virial_coefficient">Second virial coefficient</option>-->
+				<!--<option value="Third_virial_coefficient">Third virial coefficient</option>-->				
+			</select>
+			<input type="text" id="specification1_value" />
+			<select name="specification1_unit" id="specification1_unit">
+			</select>
+		</td>
+	</tr>
+
+	<tr>
+		<td colspan=5>
+			<select id="specification2_name">
+				<!-- TODO: Write code to support more properties as specifications -->
+				<option value="Quality">Quality</option>
+				<option value="Temperature">Temperature</option>
+				<option value="Pressure">Pressure</option>
+				<option value="Density">Density</option>
+				<!--<option value="Internal_Energy">Internal Energy</option>-->
+				<option value="Entropy">Entropy</option>
+				<option value="Enthalpy">Enthalpy</option>
+				<!--<option value="Isochoric_heat_capacity">Isochoric heat capacity</option>-->
+				<!--<option value="Isobaric_heat_capacity">Isobaric heat capacity</option>-->
+				<!--<option value="Speed_of_sound">Speed of sound</option>-->
+				<!--<option value="Joule_Thomson_coefficient">Joule-Thomson coefficient</option>-->
+				<!--<option value="Isothermal_throttling_coefficient">Isothermal throttling coefficient</option>-->
+				<!--<option value="Isentropic_temperature_pressure_coefficient">Isentropic temperature-pressure coefficient</option>-->
+				<!--<option value="Second_virial_coefficient">Second virial coefficient</option>-->
+				<!--<option value="Third_virial_coefficient">Third virial coefficient</option>-->				
+			</select>
+			<input type="text" id="specification2_value" />
+			<select name="specification2_unit" id="specification2_unit">
+			</select>
+		</td>
+	</tr>
+	
+	
+	<tr>
+	<td colspan=5><hr></td>
+	</tr>
+
+	<tr>
+		<td colspan=5>
+			<input type="button" name="calculate_proph2o" id="calculate_proph2o" value="Calculate..." />
+		</td>
+	</tr>
+	
+</form>
+	
+	<tr>
+	<td colspan=5><hr></td>
+	</tr>
+	
+	<tr>
+	<td></td><td align="center">Overall</td><td align="center">Vapor</td><td align="center">Liquid</td><td>Unit</td>
+	</tr>
+
+	<tr>
+	<td>Quality</td>
+	<td align="center"><div id="Quality_value_OVERALL">---</div></td>
+	<td align="center"><div id="Quality_value_VAPOR">---</div></td>
+	<td align="center"><div id="Quality_value_LIQUID">---</div></td>
+	<td>
+		<select id="Quality_unit">
+		</select>
+	</td>
+	</tr>
+
+	<tr>
+	<td>Temperature</td>
+	<td align="center"><div id="Temperature_value_OVERALL">---</div></td>
+	<td align="center"><div id="Temperature_value_VAPOR">---</div></td>
+	<td align="center"><div id="Temperature_value_LIQUID">---</div></td>
+	<td>
+		<select id="Temperature_unit">
+		</select>
+	</td>
+	</tr>
+
+	<tr>
+	<td>Pressure</td>
+	<td align="center"><div id="Pressure_value_OVERALL">---</div></td>
+	<td align="center"><div id="Pressure_value_VAPOR">---</div></td>
+	<td align="center"><div id="Pressure_value_LIQUID">---</div></td>
+	<td>
+		<select id="Pressure_unit">
+		</select>
+	</td>
+	</tr>
+
+	<tr>
+	<td>Density</td>
+	<td align="center"><div id="Density_value_OVERALL">---</div></td>
+	<td align="center"><div id="Density_value_VAPOR">---</div></td>
+	<td align="center"><div id="Density_value_LIQUID">---</div></td>
+	<td>
+		<select id="Density_unit">
+		</select>
+	</td>
+	</tr>
+
+	<tr>
+	<td>Internal Energy</td>
+	<td align="center"><div id="Internal_Energy_value_OVERALL">---</div></td>
+	<td align="center"><div id="Internal_Energy_value_VAPOR">---</div></td>
+	<td align="center"><div id="Internal_Energy_value_LIQUID">---</div></td>
+	<td>
+		<select id="Internal_Energy_unit">
+		</select>
+	</td>
+	</tr>
+
+	<tr>
+	<td>Entropy</td>
+	<td align="center"><div id="Entropy_value_OVERALL">---</div></td>
+	<td align="center"><div id="Entropy_value_VAPOR">---</div></td>
+	<td align="center"><div id="Entropy_value_LIQUID">---</div></td>
+	<td>
+		<select id="Entropy_unit">
+		</select>
+	</td>
+	</tr>
+
+	
+	<tr>
+	<td>Enthalpy</td>
+	<td align="center"><div id="Enthalpy_value_OVERALL">---</div></td>
+	<td align="center"><div id="Enthalpy_value_VAPOR">---</div></td>
+	<td align="center"><div id="Enthalpy_value_LIQUID">---</div></td>
+	<td>
+		<select id="Enthalpy_unit">
+		</select>
+	</td>
+	</tr>
+
+	<tr>
+	<td>Isochoric heat capacity</td>
+	<td align="center"><div id="Isochoric_heat_capacity_value_OVERALL">---</div></td>
+	<td align="center"><div id="Isochoric_heat_capacity_value_VAPOR">---</div></td>
+	<td align="center"><div id="Isochoric_heat_capacity_value_LIQUID">---</div></td>
+	<td>
+		<select id="Isochoric_heat_capacity_unit">
+		</select>
+	</td>
+	</tr>
+	
+	<tr>
+	<td>Isobaric heat capacity</td>
+	<td align="center"><div id="Isobaric_heat_capacity_value_OVERALL">---</div></td>
+	<td align="center"><div id="Isobaric_heat_capacity_value_VAPOR">---</div></td>
+	<td align="center"><div id="Isobaric_heat_capacity_value_LIQUID">---</div></td>
+	<td>
+		<select id="Isobaric_heat_capacity_unit">
+		</select>
+	</td>
+
+	</tr>
+
+	<tr>
+	<td>Speed of sound</td>
+	<td align="center"><div id="Speed_of_sound_value_OVERALL">---</div></td>
+	<td align="center"><div id="Speed_of_sound_value_VAPOR">---</div></td>
+	<td align="center"><div id="Speed_of_sound_value_LIQUID">---</div></td>
+	<td>
+		<select id="Speed_of_sound_unit">
+		</select>
+	</td>
+	</tr>
+
+	<tr>
+	<td>Joule-Thomson coefficient</td>
+	<td align="center"><div id="Joule_Thomson_coefficient_value_OVERALL">---</div></td>
+	<td align="center"><div id="Joule_Thomson_coefficient_value_VAPOR">---</div></td>
+	<td align="center"><div id="Joule_Thomson_coefficient_value_LIQUID">---</div></td>	<td>
+		<select id="Joule_Thomson_coefficient_unit">
+		</select>
+	</td>
+
+	</tr>
+
+	<tr>
+	<td>Isothermal throttling coefficient</td>
+	<td align="center"><div id="Isothermal_throttling_coefficient_value_OVERALL">---</div></td>
+	<td align="center"><div id="Isothermal_throttling_coefficient_value_VAPOR">---</div></td>
+	<td align="center"><div id="Isothermal_throttling_coefficient_value_LIQUID">---</div></td>
+	<td>
+		<select id="Isothermal_throttling_coefficient_unit">
+		</select>
+	</td>
+	</tr>
+
+	<tr>
+	<td>Isentropic temperature-pressure coefficient</td>
+	<td align="center"><div id="Isentropic_temperature_pressure_coefficient_value_OVERALL">---</div></td>
+	<td align="center"><div id="Isentropic_temperature_pressure_coefficient_value_VAPOR">---</div></td>
+	<td align="center"><div id="Isentropic_temperature_pressure_coefficient_value_LIQUID">---</div></td>
+	<td>
+		<select id="Isentropic_temperature_pressure_coefficient_unit">
+		</select>
+	</td>
+	</tr>
+
+	<tr>
+	<td>Second virial coefficient</td>
+	<td align="center"><div id="Second_virial_coefficient_value_OVERALL">---</div></td>
+	<td align="center"><div id="Second_virial_coefficient_value_VAPOR">---</div></td>
+	<td align="center"><div id="Second_virial_coefficient_value_LIQUID">---</div></td>
+	<td>
+		<select id="Second_virial_coefficient_unit">
+		</select>
+	</td>
+	</tr>
+
+	<tr>
+	<td>Third virial coefficient</td>
+	<td align="center"><div id="Third_virial_coefficient_value_OVERALL">---</div></td>
+	<td align="center"><div id="Third_virial_coefficient_value_VAPOR">---</div></td>
+	<td align="center"><div id="Third_virial_coefficient_value_LIQUID">---</div></td>
+	<td>
+		<select id="Third_virial_coefficient_unit">
+		</select>
+	</td>
+	</tr>
+	
+	<tr>
+	<td colspan=5><hr></td>
+	</tr>	
+</table>
+<p>This service is offered as-is and there are no guarantees of accuracy or reliability. <br> Use at your own risk.</p>
+<p><a href="http://code.google.com/appengine/"><img src="http://code.google.com/appengine/images/appengine-silver-120x30.gif" alt="Powered by Google App Engine" /></a></p>
+</body>
+</html>
